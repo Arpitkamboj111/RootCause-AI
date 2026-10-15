@@ -30,7 +30,6 @@
 
     <!-- Child Modules -->
     <modules>
-        <module>rootcause-common</module>
         <module>telemetry-service</module>
     </modules>
 
