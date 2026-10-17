@@ -54,6 +54,14 @@
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- common  -->
+		 <dependency>
+			<groupId>com.rootcauseai</groupId>
+			<artifactId>rootcause-common</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>
