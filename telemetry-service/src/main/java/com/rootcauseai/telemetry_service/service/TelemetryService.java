@@ -2,17 +2,15 @@ package com.rootcauseai.telemetry_service.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
+import com.rootcauseai.rootcause_common.exception.ResourceNotFoundException;
 import com.rootcauseai.telemetry_service.dto.TelemetryRequest;
 import com.rootcauseai.telemetry_service.dto.TelemetryResponse;
 import com.rootcauseai.telemetry_service.entity.Telemetry;
@@ -27,145 +25,130 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TelemetryService {
 
-    private final TelemetryRepository telemetryRepository;
+        private final TelemetryRepository telemetryRepository;
 
-    // public TelemetryResponse register(TelemetryRequest req) {
-    // return null;
-    // }
-
-    public TelemetryResponse events(TelemetryRequest req) {
-        Telemetry telemetry = Telemetry.builder()
-                .serviceName(req.getServiceName())
-                .eventType(req.getEventType())
-                .severity(req.getSeverity())
-                .message(req.getMessage())
-                .eventTimestamp(req.getEventTimestamp())
-                .traceId(req.getTraceId())
-                .environment(req.getEnvironment())
-                .build();
-        Telemetry savedTelemetry = telemetryRepository.save(telemetry);
-        return mapToResponse(savedTelemetry);
-    }
-
-    private TelemetryResponse mapToResponse(Telemetry savedTelemetry) {
-
-        return TelemetryResponse.builder()
-                .id(savedTelemetry.getId())
-                .serviceName(savedTelemetry.getServiceName())
-                .eventType(savedTelemetry.getEventType())
-                .severity(savedTelemetry.getSeverity())
-                .message(savedTelemetry.getMessage())
-                .eventTimestamp(savedTelemetry.getEventTimestamp())
-                .createdAt(savedTelemetry.getCreatedAt())
-                .traceId(savedTelemetry.getTraceId())
-                .environment(savedTelemetry.getEnvironment())
-                .build();
-    }
-
-     @Transactional 
-    public List<TelemetryResponse> ingestBatch(
-            List<TelemetryRequest> requests) {
-
-        if (requests == null || requests.isEmpty()) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "At least one telemetry event is required");
+        public TelemetryResponse events(TelemetryRequest req) {
+                Telemetry telemetry = Telemetry.builder()
+                                .serviceName(req.getServiceName())
+                                .eventType(req.getEventType())
+                                .severity(req.getSeverity())
+                                .message(req.getMessage())
+                                .eventTimestamp(req.getEventTimestamp())
+                                .traceId(req.getTraceId())
+                                .environment(req.getEnvironment())
+                                .build();
+                Telemetry savedTelemetry = telemetryRepository.save(telemetry);
+                return mapToResponse(savedTelemetry);
         }
 
-        if (requests.size() > 500) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Maximum 500 events are allowed per batch");
+        private TelemetryResponse mapToResponse(Telemetry savedTelemetry) {
+
+                return TelemetryResponse.builder()
+                                .id(savedTelemetry.getId())
+                                .serviceName(savedTelemetry.getServiceName())
+                                .eventType(savedTelemetry.getEventType())
+                                .severity(savedTelemetry.getSeverity())
+                                .message(savedTelemetry.getMessage())
+                                .eventTimestamp(savedTelemetry.getEventTimestamp())
+                                .createdAt(savedTelemetry.getCreatedAt())
+                                .traceId(savedTelemetry.getTraceId())
+                                .environment(savedTelemetry.getEnvironment())
+                                .build();
         }
 
-        List<Telemetry> entities = requests.stream()
-                .map(this::toEntity)
-                .toList();
+        @Transactional
+        public List<TelemetryResponse> ingestBatch(
+                        List<TelemetryRequest> requests) {
 
-        return telemetryRepository.saveAll(entities)
-                .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
-    }
+                if (requests == null || requests.isEmpty()) {
+                        throw new ResourceNotFoundException(
+                                        "At least one telemetry event is required");
+                }
 
-    @Transactional
-    public TelemetryResponse getById(Long id) {
-        Telemetry telemetry = telemetryRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Telemetry event not found: " + id));
+                if (requests.size() > 500) {
+                        throw new ResourceNotFoundException(
+                                        "Maximum 500 events are allowed per batch");
+                }
 
-        return mapToResponse(telemetry);
-    }
+                List<Telemetry> entities = requests.stream()
+                                .map(this::toEntity)
+                                .toList();
 
-    // 4. Search events with filters and pagination
-    @Transactional
-    public Page<TelemetryResponse> searchEvents(
-            String serviceName,
-            EventType eventType,
-            Severity severity,
-            LocalDateTime fromTime,
-            LocalDateTime toTime,
-            int page,
-            int size) {
-
-        if (page < 0 || size < 1 || size > 200) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Page must be >= 0 and size must be between 1 and 200");
+                return telemetryRepository.saveAll(entities)
+                                .stream()
+                                .map(this::mapToResponse)
+                                .collect(Collectors.toList());
         }
 
-        if (fromTime != null && toTime != null
-                && fromTime.isAfter(toTime)) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "fromTime cannot be after toTime");
+        @Transactional
+        public TelemetryResponse getById(Long id) {
+                Telemetry telemetry = telemetryRepository.findById(id)
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                                "Telemetry event not found: " + id));
+
+                return mapToResponse(telemetry);
         }
 
-        Pageable pageable = PageRequest.of(
-                page,
-                size,
-                Sort.by(Sort.Direction.DESC, "eventTimestamp"));
+        @Transactional
+        public Page<TelemetryResponse> searchEvents(
+                        String serviceName,
+                        EventType eventType,
+                        Severity severity,
+                        LocalDateTime fromTime,
+                        LocalDateTime toTime,
+                        int page,
+                        int size) {
 
-        return telemetryRepository.searchEvents(
-                        serviceName, eventType, severity,
-                        fromTime, toTime, pageable)
-                .map(this::mapToResponse);
-    }
+                if (page < 0 || size < 1 || size > 200) {
+                        throw new ResourceNotFoundException(
+                                        "Page must be >= 0 and size must be between 1 and 200");
+                }
 
-    // 5. Get events by microservice
-    @Transactional
-    public List<TelemetryResponse> getByServiceName(String serviceName) {
-        return telemetryRepository
-                .findByServiceNameOrderByEventTimestampDesc(serviceName)
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
+                if (fromTime != null && toTime != null
+                                && fromTime.isAfter(toTime)) {
+                        throw new ResourceNotFoundException(
+                                        "fromTime cannot be after toTime");
+                }
 
-    // 6. Get events by trace ID
-    @Transactional
-    public List<TelemetryResponse> getByTraceId(String traceId) {
-        return telemetryRepository
-                .findByTraceIdOrderByEventTimestampDesc(traceId)
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
+                Pageable pageable = PageRequest.of(
+                                page,
+                                size,
+                                Sort.by(Sort.Direction.DESC, "eventTimestamp"));
 
-    // DTO -> Entity
-    private Telemetry toEntity(TelemetryRequest req) {
-        return Telemetry.builder()
-                .serviceName(req.getServiceName())
-                .eventType(req.getEventType())
-                .severity(req.getSeverity())
-                .message(req.getMessage())
-                .eventTimestamp(req.getEventTimestamp())
-                .traceId(req.getTraceId())
-                .environment(req.getEnvironment())
-                .build();
-    }
+                return telemetryRepository.searchEvents(
+                                serviceName, eventType, severity,
+                                fromTime, toTime, pageable)
+                                .map(this::mapToResponse);
+        }
 
+        @Transactional
+        public List<TelemetryResponse> getByServiceName(String serviceName) {
+                return telemetryRepository
+                                .findByServiceNameOrderByEventTimestampDesc(serviceName)
+                                .stream()
+                                .map(this::mapToResponse)
+                                .toList();
+        }
 
+        @Transactional
+        public List<TelemetryResponse> getByTraceId(String traceId) {
+                return telemetryRepository
+                                .findByTraceIdOrderByEventTimestampDesc(traceId)
+                                .stream()
+                                .map(this::mapToResponse)
+                                .toList();
+        }
+
+        private Telemetry toEntity(TelemetryRequest req) {
+                return Telemetry.builder()
+                                .serviceName(req.getServiceName())
+                                .eventType(req.getEventType())
+                                .severity(req.getSeverity())
+                                .message(req.getMessage())
+                                .eventTimestamp(req.getEventTimestamp())
+                                .traceId(req.getTraceId())
+                                .environment(req.getEnvironment())
+                                .build();
+        }
 
 }
