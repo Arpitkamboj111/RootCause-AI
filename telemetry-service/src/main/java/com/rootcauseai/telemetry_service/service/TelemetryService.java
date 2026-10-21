@@ -1,15 +1,171 @@
 package com.rootcauseai.telemetry_service.service;
 
-import org.springframework.stereotype.Service;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+
+import com.rootcauseai.telemetry_service.dto.TelemetryRequest;
+import com.rootcauseai.telemetry_service.dto.TelemetryResponse;
+import com.rootcauseai.telemetry_service.entity.Telemetry;
+import com.rootcauseai.telemetry_service.enums.EventType;
+import com.rootcauseai.telemetry_service.enums.Severity;
 import com.rootcauseai.telemetry_service.repository.TelemetryRepository;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
-@Service 
-@RequiredArgsConstructor 
+@Service
+@RequiredArgsConstructor
 public class TelemetryService {
 
     private final TelemetryRepository telemetryRepository;
+
+    // public TelemetryResponse register(TelemetryRequest req) {
+    // return null;
+    // }
+
+    public TelemetryResponse events(TelemetryRequest req) {
+        Telemetry telemetry = Telemetry.builder()
+                .serviceName(req.getServiceName())
+                .eventType(req.getEventType())
+                .severity(req.getSeverity())
+                .message(req.getMessage())
+                .eventTimestamp(req.getEventTimestamp())
+                .traceId(req.getTraceId())
+                .environment(req.getEnvironment())
+                .build();
+        Telemetry savedTelemetry = telemetryRepository.save(telemetry);
+        return mapToResponse(savedTelemetry);
+    }
+
+    private TelemetryResponse mapToResponse(Telemetry savedTelemetry) {
+
+        return TelemetryResponse.builder()
+                .id(savedTelemetry.getId())
+                .serviceName(savedTelemetry.getServiceName())
+                .eventType(savedTelemetry.getEventType())
+                .severity(savedTelemetry.getSeverity())
+                .message(savedTelemetry.getMessage())
+                .eventTimestamp(savedTelemetry.getEventTimestamp())
+                .createdAt(savedTelemetry.getCreatedAt())
+                .traceId(savedTelemetry.getTraceId())
+                .environment(savedTelemetry.getEnvironment())
+                .build();
+    }
+
+     @Transactional 
+    public List<TelemetryResponse> ingestBatch(
+            List<TelemetryRequest> requests) {
+
+        if (requests == null || requests.isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "At least one telemetry event is required");
+        }
+
+        if (requests.size() > 500) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Maximum 500 events are allowed per batch");
+        }
+
+        List<Telemetry> entities = requests.stream()
+                .map(this::toEntity)
+                .toList();
+
+        return telemetryRepository.saveAll(entities)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public TelemetryResponse getById(Long id) {
+        Telemetry telemetry = telemetryRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Telemetry event not found: " + id));
+
+        return mapToResponse(telemetry);
+    }
+
+    // 4. Search events with filters and pagination
+    @Transactional
+    public Page<TelemetryResponse> searchEvents(
+            String serviceName,
+            EventType eventType,
+            Severity severity,
+            LocalDateTime fromTime,
+            LocalDateTime toTime,
+            int page,
+            int size) {
+
+        if (page < 0 || size < 1 || size > 200) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Page must be >= 0 and size must be between 1 and 200");
+        }
+
+        if (fromTime != null && toTime != null
+                && fromTime.isAfter(toTime)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "fromTime cannot be after toTime");
+        }
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "eventTimestamp"));
+
+        return telemetryRepository.searchEvents(
+                        serviceName, eventType, severity,
+                        fromTime, toTime, pageable)
+                .map(this::mapToResponse);
+    }
+
+    // 5. Get events by microservice
+    @Transactional
+    public List<TelemetryResponse> getByServiceName(String serviceName) {
+        return telemetryRepository
+                .findByServiceNameOrderByEventTimestampDesc(serviceName)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    // 6. Get events by trace ID
+    @Transactional
+    public List<TelemetryResponse> getByTraceId(String traceId) {
+        return telemetryRepository
+                .findByTraceIdOrderByEventTimestampDesc(traceId)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    // DTO -> Entity
+    private Telemetry toEntity(TelemetryRequest req) {
+        return Telemetry.builder()
+                .serviceName(req.getServiceName())
+                .eventType(req.getEventType())
+                .severity(req.getSeverity())
+                .message(req.getMessage())
+                .eventTimestamp(req.getEventTimestamp())
+                .traceId(req.getTraceId())
+                .environment(req.getEnvironment())
+                .build();
+    }
+
+
 
 }
