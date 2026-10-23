@@ -1,7 +1,10 @@
 package com.rooutcauseai.incident_correlation_service.service;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.cloud.openfeign.FeignClient;
@@ -172,6 +175,12 @@ public class IncidentService {
             incident = incidentRepository.save(incident);
         }
 
+        // Update affected services using the incoming event
+        updateAffectedServices(incident, serviceName);
+
+        // Save both changes together
+        incident = incidentRepository.save(incident);
+
         // 6. Link all unprocessed events from this trace to the incident
         for (TelemetryResponse related : relatedEvents) {
 
@@ -236,4 +245,30 @@ public class IncidentService {
             case CRITICAL -> 4;
         };
     }
+
+    private void updateAffectedServices(
+        Incident incident,
+        String newServiceName) {
+
+    if (newServiceName == null || newServiceName.isBlank()) {
+        return;
+    }
+
+    Set<String> services = new LinkedHashSet<>();
+
+    // Existing affected services preserve karo
+    if (incident.getAffectedServices() != null
+            && !incident.getAffectedServices().isBlank()) {
+
+        Arrays.stream(incident.getAffectedServices().split(","))
+                .map(String::trim)
+                .filter(name -> !name.isBlank())
+                .forEach(services::add);
+    }
+
+    // New service add karo; duplicate automatically ignore hoga
+    services.add(newServiceName.trim());
+
+    incident.setAffectedServices(String.join(", ", services));
+}
 }
