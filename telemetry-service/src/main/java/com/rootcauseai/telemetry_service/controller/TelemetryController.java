@@ -16,11 +16,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.rootcauseai.rootcause_common.dto.TelemetryResponse;
+import com.rootcauseai.rootcause_common.enums.EventType;
+import com.rootcauseai.rootcause_common.enums.Severity;
 import com.rootcauseai.rootcause_common.response.ApiResponse;
 import com.rootcauseai.telemetry_service.dto.TelemetryRequest;
-import com.rootcauseai.telemetry_service.dto.TelemetryResponse;
-import com.rootcauseai.telemetry_service.enums.EventType;
-import com.rootcauseai.telemetry_service.enums.Severity;
 import com.rootcauseai.telemetry_service.service.TelemetryService;
 
 import jakarta.validation.Valid;

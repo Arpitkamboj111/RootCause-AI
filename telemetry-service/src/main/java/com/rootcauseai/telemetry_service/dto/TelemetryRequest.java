@@ -2,8 +2,8 @@ package com.rootcauseai.telemetry_service.dto;
 
 import java.time.LocalDateTime;
 
-import com.rootcauseai.telemetry_service.enums.EventType;
-import com.rootcauseai.telemetry_service.enums.Severity;
+import com.rootcauseai.rootcause_common.enums.EventType;
+import com.rootcauseai.rootcause_common.enums.Severity;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

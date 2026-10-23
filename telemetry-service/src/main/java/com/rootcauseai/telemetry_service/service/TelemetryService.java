@@ -10,12 +10,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import com.rootcauseai.rootcause_common.dto.TelemetryResponse;
+import com.rootcauseai.rootcause_common.enums.EventType;
+import com.rootcauseai.rootcause_common.enums.Severity;
 import com.rootcauseai.rootcause_common.exception.ResourceNotFoundException;
 import com.rootcauseai.telemetry_service.dto.TelemetryRequest;
-import com.rootcauseai.telemetry_service.dto.TelemetryResponse;
 import com.rootcauseai.telemetry_service.entity.Telemetry;
-import com.rootcauseai.telemetry_service.enums.EventType;
-import com.rootcauseai.telemetry_service.enums.Severity;
 import com.rootcauseai.telemetry_service.repository.TelemetryRepository;
 
 import jakarta.transaction.Transactional;

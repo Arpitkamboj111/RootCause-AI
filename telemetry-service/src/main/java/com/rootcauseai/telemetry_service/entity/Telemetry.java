@@ -4,8 +4,8 @@ import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
 
-import com.rootcauseai.telemetry_service.enums.EventType;
-import com.rootcauseai.telemetry_service.enums.Severity;
+import com.rootcauseai.rootcause_common.enums.EventType;
+import com.rootcauseai.rootcause_common.enums.Severity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

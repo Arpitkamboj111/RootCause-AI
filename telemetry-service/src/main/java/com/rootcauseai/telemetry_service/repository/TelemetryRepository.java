@@ -12,9 +12,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.util.Streamable;
 import org.springframework.stereotype.Repository;
 
+import com.rootcauseai.rootcause_common.enums.EventType;
+import com.rootcauseai.rootcause_common.enums.Severity;
 import com.rootcauseai.telemetry_service.entity.Telemetry;
-import com.rootcauseai.telemetry_service.enums.EventType;
-import com.rootcauseai.telemetry_service.enums.Severity;
 
 @Repository
 public interface TelemetryRepository extends JpaRepository<Telemetry, Long> {
