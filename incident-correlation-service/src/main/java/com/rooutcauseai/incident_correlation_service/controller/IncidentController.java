@@ -21,52 +21,60 @@ import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/v1/incidents")
-@RequiredArgsConstructor 
+@RequiredArgsConstructor
 @Validated
 public class IncidentController {
 
-    private final IncidentService incidentService;
+        private final IncidentService incidentService;
 
-    @PostMapping("create")
-    public ResponseEntity<Incident> createIncident(
-            @Valid @RequestBody CreateIncidentRequest request) {
+        @PostMapping("create")
+        public ResponseEntity<Incident> createIncident(
+                        @Valid @RequestBody CreateIncidentRequest request) {
 
-        Incident incident = incidentService.createIncident(request);
+                Incident incident = incidentService.createIncident(request);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(incident);
-    }
+                return ResponseEntity.status(HttpStatus.CREATED).body(incident);
+        }
 
-    @GetMapping("id")
-    public ResponseEntity<Incident> getIncidentById(
-            @RequestParam  Long id) {
+        @GetMapping("id")
+        public ResponseEntity<Incident> getIncidentById(
+                        @RequestParam Long id) {
 
-        return ResponseEntity.ok(
-                incidentService.getIncidentById(id));
-    }
+                return ResponseEntity.ok(
+                                incidentService.getIncidentById(id));
+        }
 
-    @GetMapping
-    public ResponseEntity<Page<Incident>> getAllIncidents(
-            @PageableDefault(size = 20, sort = "detectedAt")
-            Pageable pageable) {
+        @GetMapping
+        public ResponseEntity<Page<Incident>> getAllIncidents(
+                        @PageableDefault(size = 20, sort = "detectedAt") Pageable pageable) {
 
-        return ResponseEntity.ok(
-                incidentService.getAllIncidents(pageable));
-    }
+                return ResponseEntity.ok(
+                                incidentService.getAllIncidents(pageable));
+        }
 
-    @PatchMapping("id/status")
-    public ResponseEntity<Incident> updateIncidentStatus(
-            @RequestParam Long id,
-            @Valid @RequestBody UpdateIncidentStatusRequest request) {
+        @PatchMapping("id/status")
+        public ResponseEntity<Incident> updateIncidentStatus(
+                        @RequestParam Long id,
+                        @Valid @RequestBody UpdateIncidentStatusRequest request) {
 
-        return ResponseEntity.ok(
-                incidentService.updateIncidentStatus(id, request));
-    }
+                return ResponseEntity.ok(
+                                incidentService.updateIncidentStatus(id, request));
+        }
 
-    @GetMapping("id/events")
-    public ResponseEntity<List<IncidentEvent>> getIncidentEvents(
-            @RequestParam Long id) {
+        @GetMapping("id/events")
+        public ResponseEntity<List<IncidentEvent>> getIncidentEvents(
+                        @RequestParam Long id) {
 
-        return ResponseEntity.ok(
-                incidentService.getIncidentEvents(id));
-    }
+                return ResponseEntity.ok(
+                                incidentService.getIncidentEvents(id));
+        }
+
+        @GetMapping("process-event/eventId")
+        public ResponseEntity<Incident> processTelemetryEvent(
+                        @RequestParam Long eventId) {
+
+                Incident incident = incidentService.processTelemetryEvent(eventId);
+
+                return ResponseEntity.ok(incident);
+        }
 }
