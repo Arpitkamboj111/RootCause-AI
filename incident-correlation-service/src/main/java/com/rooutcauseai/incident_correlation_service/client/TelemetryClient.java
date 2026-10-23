@@ -1,5 +1,7 @@
 package com.rooutcauseai.incident_correlation_service.client;
 
+import java.util.List;
+
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -14,5 +16,9 @@ public interface TelemetryClient {
 
     @GetMapping ("/api/v1/telemetry/events/id")
     ApiResponse<TelemetryResponse> getTelemetryEventById(@RequestParam ("id") Long id);
+
+    @GetMapping("/api/v1/telemetry/traceId")
+    ApiResponse<List<TelemetryResponse>> getEventsByTraceId(
+            @RequestParam("traceId") String traceId);
 
 }
