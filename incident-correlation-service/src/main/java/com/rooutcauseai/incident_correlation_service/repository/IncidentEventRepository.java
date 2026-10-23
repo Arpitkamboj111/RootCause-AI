@@ -1,6 +1,7 @@
 package com.rooutcauseai.incident_correlation_service.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -12,5 +13,7 @@ public interface IncidentEventRepository  extends  JpaRepository<IncidentEvent ,
             Long incidentId);
 
     boolean existsByTelemetryEventId(Long telemetryEventId);
+
+    Optional<IncidentEvent> findFirstByTelemetryEventId(Long telemetryEventId);
  
 }

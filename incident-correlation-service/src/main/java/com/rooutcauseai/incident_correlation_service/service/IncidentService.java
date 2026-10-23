@@ -26,14 +26,14 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
-@RequiredArgsConstructor 
+@RequiredArgsConstructor
 public class IncidentService {
 
     private final IncidentRepository incidentRepository;
     private final IncidentEventRepository incidentEventRepository;
     private final TelemetryClient telemetryClient;
 
-    @Transactional 
+    @Transactional
     public Incident createIncident(CreateIncidentRequest request) {
 
         if (incidentRepository.existsByIncidentKey(
@@ -85,13 +85,11 @@ public class IncidentService {
                 .findByIncident_IdOrderByEventTimestampAsc(incidentId);
     }
 
-
-     @Transactional
+    @Transactional
     public Incident processTelemetryEvent(Long eventId) {
 
-        // Fetch event from Telemetry Service
-        ApiResponse<TelemetryResponse> apiResponse =
-                telemetryClient.getTelemetryEventById(eventId);
+        // 1. Fetch the requested telemetry event
+        ApiResponse<TelemetryResponse> apiResponse = telemetryClient.getTelemetryEventById(eventId);
 
         if (apiResponse == null || apiResponse.getData() == null) {
             throw new IllegalStateException(
@@ -100,11 +98,15 @@ public class IncidentService {
 
         TelemetryResponse telemetry = apiResponse.getData();
 
-        // Prevent duplicate processing
-        if (incidentEventRepository.existsByTelemetryEventId(eventId)) {
-            throw new IllegalArgumentException(
-                    "Telemetry event already processed: " + eventId);
+        // 2. If already processed, return its existing incident
+        var existingEvent = incidentEventRepository
+                .findFirstByTelemetryEventId(eventId);
+
+        if (existingEvent.isPresent()) {
+            return existingEvent.get().getIncident();
         }
+
+        String traceId = telemetry.getTraceId();
 
         LocalDateTime eventTime = telemetry.getEventTimestamp();
 
@@ -114,28 +116,95 @@ public class IncidentService {
 
         String serviceName = telemetry.getServiceName();
 
-        Incident incident = Incident.builder()
-                .incidentKey("INC-" + UUID.randomUUID())
-                .title("Telemetry incident: " + serviceName)
-                .description(telemetry.getMessage())
-                .severity(mapSeverity(telemetry.getSeverity()))
-                .status(IncidentStatus.DETECTED)
-                .rootService(serviceName)
-                .affectedServices(serviceName)
-                .detectedAt(eventTime)
-                .build();
+        // 3. Fetch events belonging to the same trace
+        List<TelemetryResponse> relatedEvents = List.of(telemetry);
 
-        incident = incidentRepository.save(incident);
+        if (traceId != null && !traceId.isBlank()) {
 
-        IncidentEvent incidentEvent = IncidentEvent.builder()
-                .incident(incident)
-                .telemetryEventId(eventId)
-                .serviceName(serviceName)
-                .eventTimestamp(eventTime)
-                .correlationReason("Initial telemetry event processing")
-                .build();
+            ApiResponse<List<TelemetryResponse>> traceResponse = telemetryClient.getEventsByTraceId(traceId);
 
-        incidentEventRepository.save(incidentEvent);
+            if (traceResponse != null && traceResponse.getData() != null) {
+                relatedEvents = traceResponse.getData();
+            }
+        }
+
+        // 4. Look for an incident already linked to any event in this trace
+        Incident incident = null;
+
+        for (TelemetryResponse related : relatedEvents) {
+
+            if (related.getId() == null) {
+                continue;
+            }
+
+            var linkedEvent = incidentEventRepository
+                    .findFirstByTelemetryEventId(related.getId());
+
+            if (linkedEvent.isPresent()) {
+                incident = linkedEvent.get().getIncident();
+                break;
+            }
+        }
+
+        // 5. If no matching incident exists, create a new one
+        if (incident == null) {
+
+            incident = Incident.builder()
+                    .incidentKey("INC-" + UUID.randomUUID())
+                    .title("Telemetry incident: " + serviceName)
+                    .description(telemetry.getMessage())
+                    .severity(mapSeverity(telemetry.getSeverity()))
+                    .status(IncidentStatus.DETECTED)
+                    .rootService(serviceName)
+                    .affectedServices(serviceName)
+                    .detectedAt(eventTime)
+                    .build();
+
+            incident = incidentRepository.save(incident);
+        }
+
+        // Update incident severity if the new event is more severe
+        IncidentSeverity incomingSeverity = mapSeverity(telemetry.getSeverity());
+
+        if (severityRank(incomingSeverity) > severityRank(incident.getSeverity())) {
+
+            incident.setSeverity(incomingSeverity);
+            incident = incidentRepository.save(incident);
+        }
+
+        // 6. Link all unprocessed events from this trace to the incident
+        for (TelemetryResponse related : relatedEvents) {
+
+            if (related.getId() == null
+                    || incidentEventRepository
+                            .existsByTelemetryEventId(related.getId())) {
+                continue;
+            }
+
+            LocalDateTime relatedTime = related.getEventTimestamp();
+
+            if (relatedTime == null) {
+                relatedTime = LocalDateTime.now();
+            }
+
+            if (related.getServiceName() == null
+                    || related.getServiceName().isBlank()) {
+                continue;
+            }
+
+            IncidentEvent incidentEvent = IncidentEvent.builder()
+                    .incident(incident)
+                    .telemetryEventId(related.getId())
+                    .serviceName(related.getServiceName())
+                    .eventTimestamp(relatedTime)
+                    .correlationReason(
+                            traceId == null || traceId.isBlank()
+                                    ? "Individual telemetry event processing"
+                                    : "Matched by traceId: " + traceId)
+                    .build();
+
+            incidentEventRepository.save(incidentEvent);
+        }
 
         return incident;
     }
@@ -152,6 +221,19 @@ public class IncidentService {
             case "HIGH", "ERROR" -> IncidentSeverity.HIGH;
             case "MEDIUM", "WARN", "WARNING" -> IncidentSeverity.MEDIUM;
             default -> IncidentSeverity.LOW;
+        };
+    }
+
+    private int severityRank(IncidentSeverity severity) {
+
+        if (severity == null) {
+            return 0;
+        }
+        return switch (severity) {
+            case LOW -> 1;
+            case MEDIUM -> 2;
+            case HIGH -> 3;
+            case CRITICAL -> 4;
         };
     }
 }
