@@ -7,10 +7,25 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "incident_events", indexes = {
-        @Index(name = "idx_incident_event_incident_id", columnList = "incident_id"),
-        @Index(name = "idx_incident_event_telemetry_id", columnList = "telemetry_event_id")
-})
+@Table(
+    name = "incident_events",
+    indexes = {
+        @Index(
+            name = "idx_incident_event_incident_id",
+            columnList = "incident_id"
+        ),
+        @Index(
+            name = "idx_incident_event_telemetry_id",
+            columnList = "telemetry_event_id"
+        )
+    },
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_incident_event_telemetry_id",
+            columnNames = "telemetry_event_id"
+        )
+    }
+)
 @Data 
 @Builder
 @NoArgsConstructor
