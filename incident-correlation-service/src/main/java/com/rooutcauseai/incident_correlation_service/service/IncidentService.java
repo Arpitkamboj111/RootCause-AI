@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import org.springframework.cloud.openfeign.FeignClient;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,7 +25,7 @@ import com.rooutcauseai.incident_correlation_service.exception.IncidentNotFoundE
 import com.rooutcauseai.incident_correlation_service.repository.IncidentEventRepository;
 import com.rooutcauseai.incident_correlation_service.repository.IncidentRepository;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
 @Service
