@@ -48,6 +48,7 @@
         <module>telemetry-service</module>
         <module>rootcause-common</module>
         <module>incident-correlation-service</module>
+        <module>ai-analysis-service</module>
     </modules>
 
 </project>
