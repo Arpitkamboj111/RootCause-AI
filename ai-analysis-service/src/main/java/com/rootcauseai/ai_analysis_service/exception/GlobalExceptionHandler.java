@@ -18,38 +18,38 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GlobalExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ApiResponse<?>> handleResourceNotFoundException(ResourceNotFoundException ex){
+    public ResponseEntity<ApiResponse<?>> handleResourceNotFoundException(ResourceNotFoundException ex) {
         log.warn("Resource not found exception occurred: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.error(404,ex.getMessage()));
-    } 
+                .body(ApiResponse.error(404, ex.getMessage()));
+    }
+
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ApiResponse<?>> handleBusinessException(BusinessException ex){
+    public ResponseEntity<ApiResponse<?>> handleBusinessException(BusinessException ex) {
         log.warn("Business exception occurred: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(400,ex.getMessage()));
-    } 
+                .body(ApiResponse.error(400, ex.getMessage()));
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<?>> handleValidationException(MethodArgumentNotValidException ex){
+    public ResponseEntity<ApiResponse<?>> handleValidationException(MethodArgumentNotValidException ex) {
 
-         String errorMessage = ex.getBindingResult()
-            .getFieldErrors()
-            .stream()
+        String errorMessage = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
                 .map(error -> error.getField() + ": "
                         + error.getDefaultMessage())
                 .findFirst()
                 .orElse("Request validation failed");
 
-            
-            log.warn("Validation exception occurred: {}", errorMessage);
-            return ResponseEntity
+        log.warn("Validation exception occurred: {}", errorMessage);
+        return ResponseEntity
                 .badRequest()
                 .body(ApiResponse.error(400, errorMessage));
-        
+
     }
 
-     @ExceptionHandler(Exception.class)
+    @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleGenericException(Exception ex) {
         log.error("Something went wrong", ex);
         return ResponseEntity
@@ -60,14 +60,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<?>> handleAccessDenied(
             AccessDeniedException ex) {
-                log.warn("Access denied", ex);
+        log.warn("Access denied", ex);
 
         return ResponseEntity
                 .status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.error(403, "Access denied"));
     }
-
-    
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ApiResponse<?>> handleAuthenticationException(AuthenticationException ex) {
@@ -76,8 +74,18 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.error(401, "Unauthorized - Invalid or missing token"));
     }
-    
 
+    @ExceptionHandler(AiAnalysisException.class)
+    public ResponseEntity<ApiResponse<?>> handleAiAnalysisException(
+            AiAnalysisException ex) {
+
+        log.error("AI analysis exception: {}", ex.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(ApiResponse.error(
+                        503,
+                        "Incident was saved, but AI analysis is temporarily unavailable"));
+    }
 
 }
-
