@@ -1,0 +1,72 @@
+
+package com.rootcauseai.ai_analysis_service.service;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.ai.document.Document;
+import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.stereotype.Service;
+
+import lombok.RequiredArgsConstructor;
+
+@Service
+@RequiredArgsConstructor
+public class IncidentVectorService {
+
+    private final VectorStore vectorStore;
+
+    public void storeIncident(
+            Long incidentId,
+            String serviceName,
+            String errorMessage,
+            String stackTrace,
+            String rootCause) {
+
+        String content = """
+                Service: %s
+                Error: %s
+                Stack trace: %s
+                Root cause: %s
+                """.formatted(
+                safe(serviceName),
+                safe(errorMessage),
+                safe(stackTrace),
+                safe(rootCause));
+
+        Document document = new Document(
+                content,
+                Map.of(
+                        "incidentId", incidentId,
+                        "serviceName", safe(serviceName)));
+
+        vectorStore.add(List.of(document));
+    }
+
+    public List<Document> findSimilarIncidents(String query, int topK) {
+
+        if (query == null || query.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Search query cannot be empty");
+        }
+
+        if (topK < 1 || topK > 20) {
+            throw new IllegalArgumentException(
+                    "topK must be between 1 and 20");
+        }
+
+        return vectorStore.similaritySearch(
+                SearchRequest.builder()
+                        .query(query)
+                        .topK(topK)
+                        .build());
+    }
+
+    private String safe(String value) {
+        return value == null || value.isBlank()
+                ? "Not provided"
+                : value;
+    }
+}
+
