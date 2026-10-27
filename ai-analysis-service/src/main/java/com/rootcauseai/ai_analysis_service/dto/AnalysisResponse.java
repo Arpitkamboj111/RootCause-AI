@@ -15,4 +15,9 @@ public class AnalysisResponse {
     private String serviceName;
     private String status;
     private String message;
+
+    private String probableRootCause;
+    private String evidence;
+    private String suggestedFix;
+    
 }
