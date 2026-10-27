@@ -27,6 +27,7 @@ public class AiAnalysisService {
 
         private final AnalysisRepository analysisRepository;
         private final ChatClient chatClient;
+        private final IncidentVectorService incidentVectorService;
 
         public AnalysisResponse saveIncident(AnalysisRequest request) {
 
@@ -97,6 +98,25 @@ public class AiAnalysisService {
                         saved.setStatus("ANALYZED");
 
                         saved = analysisRepository.save(saved);
+
+                        try {
+                                incidentVectorService.storeIncident(
+                                                saved.getId(),
+                                                saved.getServiceName(),
+                                                saved.getErrorMessage(),
+                                                saved.getStackTrace(),
+                                                saved.getProbableRootCause());
+
+                                log.info(
+                                                "Incident {} stored in vector store",
+                                                saved.getId());
+
+                        } catch (Exception vectorException) {
+                                log.error(
+                                                "Failed to store incident {} in vector store",
+                                                saved.getId(),
+                                                vectorException);
+                        }
 
                         // Return saved analysis
                         return AnalysisResponse.builder()
@@ -213,7 +233,4 @@ public class AiAnalysisService {
                 return analysisRepository.findAll(spec, pageable);
         }
 
-        // private String normalizeFilter(String value) {
-        // return value == null || value.isBlank() ? null : value.trim();
-        // }
 }
