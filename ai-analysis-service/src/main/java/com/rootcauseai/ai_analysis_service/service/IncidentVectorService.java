@@ -65,11 +65,12 @@ public class IncidentVectorService {
                 }
 
                 return vectorStore.similaritySearch(
-                                SearchRequest.builder()
+                                        SearchRequest.builder()
                                                 .query(query)
                                                 .topK(topK)
+                                                .similarityThreshold(0.70)
                                                 .build());
-        }
+                                        }
 
         private String safe(String value) {
                 return value == null || value.isBlank()
