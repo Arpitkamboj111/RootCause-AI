@@ -1,6 +1,8 @@
 
 package com.rootcauseai.ai_analysis_service.service;
 
+import java.util.List;
+
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -42,6 +44,35 @@ public class AiAnalysisService {
 
                 IncidentAnalysis saved = analysisRepository.save(incident);
 
+                List<org.springframework.ai.document.Document> similarIncidents = List.of();
+
+                String similarIncidentContext = "No similar historical incidents found.";
+
+                try {
+                        similarIncidents = incidentVectorService.findSimilarIncidents(
+                                        safe(request.getErrorMessage()) + "\n"
+                                                        + safe(request.getStackTrace()),
+                                        3);
+
+                        similarIncidentContext = similarIncidents.isEmpty()
+                                        ? "No similar historical incidents found."
+                                        : similarIncidents.stream()
+                                                        .map(doc -> doc.getText())
+                                                        .collect(java.util.stream.Collectors.joining(
+                                                                        "\n\n---\n\n"));
+
+                } catch (Exception ex) {
+                        log.warn(
+                                        "Similarity search failed for incident ID: {}. Continuing without historical context.",
+                                        saved.getId(),
+                                        ex);
+                }
+
+                log.info(
+                                "Found {} similar historical incidents for incident ID: {}",
+                                similarIncidents.size(),
+                                saved.getId());
+
                 try {
                         // Ask OpenAI to analyze the incident
                         long startTime = System.currentTimeMillis();
@@ -61,25 +92,38 @@ public class AiAnalysisService {
                                                         EVIDENCE: specific evidence from the supplied data
                                                         SUGGESTED_FIX: actionable troubleshooting or remediation steps
                                                         """)
-                                        .user("""
-                                                        Analyze this production incident.
 
+                                        .user("""
+                                                        Analyze this production incident using the current incident data
+                                                        and the historical context below.
+
+                                                        Current Incident:
                                                         Service: %s
                                                         Severity: %s
                                                         Trace ID: %s
                                                         Error: %s
                                                         Stack trace: %s
+
+                                                        Similar Historical Incidents:
+                                                        %s
+
+                                                        Use historical incidents only as supporting evidence.
+                                                        Do not assume their root causes apply to the current incident.
+                                                        Explain uncertainty when the evidence is insufficient.
                                                         """.formatted(
                                                         safe(request.getServiceName()),
                                                         safe(request.getSeverity()),
                                                         safe(request.getTraceId()),
                                                         safe(request.getErrorMessage()),
-                                                        safe(request.getStackTrace())))
+                                                        safe(request.getStackTrace()),
+                                                        similarIncidentContext))
+
                                         .call()
                                         .content();
                         log.info("Gemini response received for incident ID: {} in {} ms",
                                         saved.getId(),
                                         System.currentTimeMillis() - startTime);
+
 
                         // Parse the three sections from the AI response
                         String rootCause = extractSection(
@@ -105,7 +149,9 @@ public class AiAnalysisService {
                                                 saved.getServiceName(),
                                                 saved.getErrorMessage(),
                                                 saved.getStackTrace(),
-                                                saved.getProbableRootCause());
+                                                saved.getProbableRootCause(),
+                                                saved.getEvidence(),
+                                                saved.getSuggestedFix());
 
                                 log.info(
                                                 "Incident {} stored in vector store",

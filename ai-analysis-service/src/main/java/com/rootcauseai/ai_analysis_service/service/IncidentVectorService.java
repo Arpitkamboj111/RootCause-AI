@@ -15,58 +15,65 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class IncidentVectorService {
 
-    private final VectorStore vectorStore;
+        private final VectorStore vectorStore;
 
-    public void storeIncident(
-            Long incidentId,
-            String serviceName,
-            String errorMessage,
-            String stackTrace,
-            String rootCause) {
+        public void storeIncident(
+                        Long incidentId,
+                        String serviceName,
+                        String errorMessage,
+                        String stackTrace,
+                        String rootCause,
+                        String evidence,
+                        String suggestedFix) {
 
-        String content = """
-                Service: %s
-                Error: %s
-                Stack trace: %s
-                Root cause: %s
-                """.formatted(
-                safe(serviceName),
-                safe(errorMessage),
-                safe(stackTrace),
-                safe(rootCause));
+                String content = """
+                                Incident ID: %s
+                                Service: %s
+                                Error: %s
+                                Stack trace: %s
+                                Root cause: %s
+                                Evidence: %s
+                                Suggested fix: %s
+                                """.formatted(
+                                incidentId,
+                                safe(serviceName),
+                                safe(errorMessage),
+                                safe(stackTrace),
+                                safe(rootCause),
+                                safe(evidence),
+                                safe(suggestedFix));
 
-        Document document = new Document(
-                content,
-                Map.of(
-                        "incidentId", incidentId,
-                        "serviceName", safe(serviceName)));
+                Document document = new Document(
+                                content,
+                                Map.of(
+                                                "incidentId", incidentId,
+                                                "serviceName", safe(serviceName)));
 
-        vectorStore.add(List.of(document));
-    }
-
-    public List<Document> findSimilarIncidents(String query, int topK) {
-
-        if (query == null || query.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Search query cannot be empty");
+                vectorStore.add(List.of(document));
         }
 
-        if (topK < 1 || topK > 20) {
-            throw new IllegalArgumentException(
-                    "topK must be between 1 and 20");
+        public List<Document> findSimilarIncidents(String query, int topK) {
+
+                if (query == null || query.isBlank()) {
+                        throw new IllegalArgumentException(
+                                        "Search query cannot be empty");
+                }
+
+                if (topK < 1 || topK > 20) {
+                        throw new IllegalArgumentException(
+                                        "topK must be between 1 and 20");
+                }
+
+                return vectorStore.similaritySearch(
+                                SearchRequest.builder()
+                                                .query(query)
+                                                .topK(topK)
+                                                .build());
         }
 
-        return vectorStore.similaritySearch(
-                SearchRequest.builder()
-                        .query(query)
-                        .topK(topK)
-                        .build());
-    }
-
-    private String safe(String value) {
-        return value == null || value.isBlank()
-                ? "Not provided"
-                : value;
-    }
+        private String safe(String value) {
+                return value == null || value.isBlank()
+                                ? "Not provided"
+                                : value;
+        }
 }
-
