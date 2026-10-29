@@ -2,6 +2,7 @@
 package com.rootcauseai.apigateway.security;
 
 import com.rootcauseai.rootcause_common.security.JwtUtil;
+
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -27,14 +28,14 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             ServerWebExchange exchange,
             GatewayFilterChain chain) {
 
-        // Allow explicitly public routes
+        // 1. Skip JWT validation for public endpoints
         if (!routeValidator.isSecured.test(exchange.getRequest())) {
             return chain.filter(exchange);
         }
 
         String token = null;
 
-        // 1. Read Authorization header
+        // 2. Extract token from Authorization header
         String authHeader = exchange.getRequest()
                 .getHeaders()
                 .getFirst(HttpHeaders.AUTHORIZATION);
@@ -43,7 +44,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             token = authHeader.substring(7).trim();
         }
 
-        // 2. Fall back to accessToken cookie
+        // 3. Fall back to accessToken cookie
         if (token == null || token.isBlank()) {
             var cookie = exchange.getRequest()
                     .getCookies()
@@ -54,12 +55,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             }
         }
 
-        // 3. Reject missing token
+        // 4. Reject requests without a token
         if (token == null || token.isBlank()) {
             return unauthorized(exchange);
         }
 
-        // 4. Validate JWT using your existing JwtUtil method
+        // 5. Validate JWT
         try {
             if (!jwtUtil.isTokenValid(token)) {
                 return unauthorized(exchange);
@@ -68,13 +69,12 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             return unauthorized(exchange);
         }
 
-        // 5. Forward validated token to downstream service
+        // 6. Forward the validated token to the downstream service
         final String validatedToken = token;
 
         ServerHttpRequest request = exchange.getRequest()
                 .mutate()
-                .headers(headers ->
-                        headers.setBearerAuth(validatedToken))
+                .headers(headers -> headers.setBearerAuth(validatedToken))
                 .build();
 
         return chain.filter(
@@ -85,6 +85,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     }
 
     private Mono<Void> unauthorized(ServerWebExchange exchange) {
+
         exchange.getResponse()
                 .setStatusCode(HttpStatus.UNAUTHORIZED);
 
