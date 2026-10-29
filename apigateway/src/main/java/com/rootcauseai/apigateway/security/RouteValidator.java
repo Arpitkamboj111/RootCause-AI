@@ -10,25 +10,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class RouteValidator {
 
-    private static final List<String> PUBLIC_PATHS = List.of(
+    private static final List<String> OPEN_API_ENDPOINTS = List.of(
             "/actuator/health",
             "/api/v1/auth/login",
             "/api/v1/auth/register"
     );
 
     public final Predicate<ServerHttpRequest> isSecured =
-            request -> {
-                String path = request.getURI().getPath();
-
-                return PUBLIC_PATHS.stream()
-                        .noneMatch(publicPath ->
-                                path.equals(publicPath)
-                                || (publicPath.endsWith("/**")
-                                    && path.startsWith(
-                                        publicPath.substring(
-                                            0, publicPath.length() - 3
-                                        )
-                                    ))
-                        );
-            };
+            request -> OPEN_API_ENDPOINTS.stream()
+                    .noneMatch(path ->
+                            request.getURI().getPath().equals(path));
 }
