@@ -2,6 +2,7 @@
 package com.rootcauseai.telemetry_service.controller;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.rootcauseai.rootcause_common.response.ApiResponse;
 import com.rootcauseai.telemetry_service.dto.LoginRequest;
 import com.rootcauseai.telemetry_service.dto.LoginResponse;
+import com.rootcauseai.telemetry_service.dto.LoginResult;
 import com.rootcauseai.telemetry_service.dto.RegisterRequest;
 import com.rootcauseai.telemetry_service.dto.RegisterResponse;
 import com.rootcauseai.telemetry_service.service.AuthService;
@@ -23,28 +25,41 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;
+        private final AuthService authService;
 
-    @PostMapping("/login")
-    public ResponseEntity<ApiResponse<LoginResponse>> login(
-            @Valid @RequestBody LoginRequest request) {
+        @PostMapping("/login")
+        public ResponseEntity<ApiResponse<LoginResponse>> login(
+                        @Valid @RequestBody LoginRequest request) {
 
-        LoginResponse response = authService.login(request);
+                LoginResult result = authService.login(request);
 
-        return ResponseEntity.ok(
-                ApiResponse.success("Login successful", response));
-    }
+                ResponseCookie cookie = ResponseCookie
+                                .from("accessToken", result.accessToken())
+                                .httpOnly(true)
+                                .secure(false) 
+                                .path("/")
+                                .maxAge(86400)
+                                .sameSite("Lax")
+                                .build();
 
-    @PostMapping("/register")
-    public ResponseEntity<ApiResponse<RegisterResponse>> register(
-            @Valid @RequestBody RegisterRequest request) {
+                return ResponseEntity.ok()
+                                .header(org.springframework.http.HttpHeaders.SET_COOKIE,
+                                                cookie.toString())
+                                .body(ApiResponse.success(
+                                                "Login successful",
+                                                result.response()));
+        }
 
-        RegisterResponse response = authService.register(request);
+        @PostMapping("/register")
+        public ResponseEntity<ApiResponse<RegisterResponse>> register(
+                        @Valid @RequestBody RegisterRequest request) {
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(ApiResponse.success(
-                        "User registered successfully", response));
+                RegisterResponse response = authService.register(request);
 
-    }
+                return ResponseEntity
+                                .status(HttpStatus.CREATED)
+                                .body(ApiResponse.success(
+                                                "User registered successfully", response));
+
+        }
 }

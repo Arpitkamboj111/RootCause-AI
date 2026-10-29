@@ -13,6 +13,7 @@ import com.rootcauseai.rootcause_common.exception.BusinessException;
 import com.rootcauseai.rootcause_common.security.JwtUtil;
 import com.rootcauseai.telemetry_service.dto.LoginRequest;
 import com.rootcauseai.telemetry_service.dto.LoginResponse;
+import com.rootcauseai.telemetry_service.dto.LoginResult;
 import com.rootcauseai.telemetry_service.dto.RegisterRequest;
 import com.rootcauseai.telemetry_service.dto.RegisterResponse;
 import com.rootcauseai.telemetry_service.entity.User;
@@ -31,22 +32,21 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public LoginResponse login(LoginRequest request) {
+    public LoginResult login(LoginRequest request) {
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getUsername(),
-                        request.getPassword()));
+    Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                    request.getUsername(),
+                    request.getPassword()));
 
-        String token = jwtUtil.generateToken(
-                authentication.getName(),
-                Map.of("tokenType", "access"));
+    String token = jwtUtil.generateToken(
+            authentication.getName(),
+            Map.of("tokenType", "access"));
 
-        return new LoginResponse(
-                token,
-                "Bearer",
-                86400);
-    }
+    LoginResponse response = new LoginResponse("Bearer", 86400);
+
+    return new LoginResult(token, response);
+}
 
     public RegisterResponse register(RegisterRequest request) {
 
