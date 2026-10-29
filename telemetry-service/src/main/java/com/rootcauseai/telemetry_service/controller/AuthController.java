@@ -1,6 +1,7 @@
 
 package com.rootcauseai.telemetry_service.controller;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -36,7 +37,7 @@ public class AuthController {
                 ResponseCookie cookie = ResponseCookie
                                 .from("accessToken", result.accessToken())
                                 .httpOnly(true)
-                                .secure(false) 
+                                .secure(false)
                                 .path("/")
                                 .maxAge(86400)
                                 .sameSite("Lax")
@@ -62,4 +63,22 @@ public class AuthController {
                                                 "User registered successfully", response));
 
         }
+
+        @PostMapping("/logout")
+        public ResponseEntity<ApiResponse<Void>> logout() {
+
+                ResponseCookie cookie = ResponseCookie
+                                .from("accessToken", "")
+                                .httpOnly(true)
+                                .secure(false) 
+                                .path("/")
+                                .maxAge(0)
+                                .sameSite("Lax")
+                                .build();
+
+                return ResponseEntity.ok()
+                                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                                .body(ApiResponse.success("Logout successful", null));
+        }
+
 }
