@@ -49,6 +49,7 @@
         <module>rootcause-common</module>
         <module>incident-correlation-service</module>
         <module>ai-analysis-service</module>
+        <module>apigateway</module>
     </modules>
 
 </project>
