@@ -14,6 +14,7 @@ import com.rootcauseai.rootcause_common.dto.TelemetryResponse;
 import com.rootcauseai.rootcause_common.enums.EventType;
 import com.rootcauseai.rootcause_common.enums.Severity;
 import com.rootcauseai.rootcause_common.exception.ResourceNotFoundException;
+import com.rootcauseai.telemetry_service.client.IncidentCorrelationClient;
 import com.rootcauseai.telemetry_service.dto.TelemetryRequest;
 import com.rootcauseai.telemetry_service.entity.Telemetry;
 import com.rootcauseai.telemetry_service.repository.TelemetryRepository;
@@ -26,18 +27,20 @@ import lombok.RequiredArgsConstructor;
 public class TelemetryService {
 
         private final TelemetryRepository telemetryRepository;
+        private final IncidentCorrelationClient incidentCorrelationClient;
 
         public TelemetryResponse events(TelemetryRequest req) {
-                Telemetry telemetry = Telemetry.builder()
-                                .serviceName(req.getServiceName())
-                                .eventType(req.getEventType())
-                                .severity(req.getSeverity())
-                                .message(req.getMessage())
-                                .eventTimestamp(req.getEventTimestamp())
-                                .traceId(req.getTraceId())
-                                .environment(req.getEnvironment())
-                                .build();
-                Telemetry savedTelemetry = telemetryRepository.save(telemetry);
+
+                Telemetry savedTelemetry = telemetryRepository.save(toEntity(req));
+                try {
+                        incidentCorrelationClient.processTelemetryEvent(
+                                        savedTelemetry.getId());
+                } catch (Exception e) {
+                        System.err.println(
+                                        "Incident correlation failed for telemetry event ID: "
+                                                        + savedTelemetry.getId()
+                                                        + ". Error: " + e.getMessage());
+                }
                 return mapToResponse(savedTelemetry);
         }
 
@@ -74,8 +77,21 @@ public class TelemetryService {
                                 .map(this::toEntity)
                                 .toList();
 
-                return telemetryRepository.saveAll(entities)
-                                .stream()
+                List<Telemetry> savedEvents = telemetryRepository.saveAll(entities);
+
+                for (Telemetry event : savedEvents) {
+                        try {
+                                incidentCorrelationClient.processTelemetryEvent(
+                                                event.getId());
+                        } catch (Exception e) {
+                                System.err.println(
+                                                "Incident correlation failed for event ID: "
+                                                                + event.getId()
+                                                                + ". Error: " + e.getMessage());
+                        }
+                }
+
+                return savedEvents.stream()
                                 .map(this::mapToResponse)
                                 .collect(Collectors.toList());
         }
