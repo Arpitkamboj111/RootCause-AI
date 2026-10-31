@@ -1,3 +1,4 @@
+
 package com.rooutcauseai.incident_correlation_service.client;
 
 import org.springframework.context.annotation.Bean;
@@ -13,28 +14,26 @@ public class FeignConfig {
 
     @Bean
     public RequestInterceptor requestInterceptor() {
-
         return requestTemplate -> {
 
             ServletRequestAttributes attributes =
                     (ServletRequestAttributes)
                             RequestContextHolder.getRequestAttributes();
 
-            if (attributes != null) {
+            if (attributes == null) {
+                return;
+            }
 
-                HttpServletRequest request =
-                        attributes.getRequest();
+            HttpServletRequest request = attributes.getRequest();
 
-                String authorization =
-                        request.getHeader("Authorization");
+            String authorization = request.getHeader("Authorization");
+            if (authorization != null && !authorization.isBlank()) {
+                requestTemplate.header("Authorization", authorization);
+            }
 
-                if (authorization != null
-                        && authorization.startsWith("Bearer ")) {
-
-                    requestTemplate.header(
-                            "Authorization",
-                            authorization);
-                }
+            String cookie = request.getHeader("Cookie");
+            if (cookie != null && !cookie.isBlank()) {
+                requestTemplate.header("Cookie", cookie);
             }
         };
     }
