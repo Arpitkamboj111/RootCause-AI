@@ -1,4 +1,4 @@
-package com.rootcauseai.ai_analysis_service.dto;
+package com.rootcauseai.rootcause_common.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
