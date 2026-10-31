@@ -7,13 +7,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import com.rootcauseai.rootcause_common.dto.AnalysisRequest;
 import com.rootcauseai.rootcause_common.dto.TelemetryResponse;
 import com.rootcauseai.rootcause_common.response.ApiResponse;
+import com.rooutcauseai.incident_correlation_service.client.AiAnalysisClient;
 import com.rooutcauseai.incident_correlation_service.client.TelemetryClient;
 import com.rooutcauseai.incident_correlation_service.dto.CreateIncidentRequest;
 import com.rooutcauseai.incident_correlation_service.dto.UpdateIncidentStatusRequest;
@@ -35,6 +36,7 @@ public class IncidentService {
     private final IncidentRepository incidentRepository;
     private final IncidentEventRepository incidentEventRepository;
     private final TelemetryClient telemetryClient;
+    private final AiAnalysisClient aiAnalysisClient;
 
     @Transactional
     public Incident createIncident(CreateIncidentRequest request) {
@@ -133,6 +135,7 @@ public class IncidentService {
 
         // 4. Look for an incident already linked to any event in this trace
         Incident incident = null;
+        boolean newIncidentCreated = false;
 
         for (TelemetryResponse related : relatedEvents) {
 
@@ -154,7 +157,7 @@ public class IncidentService {
 
             incident = Incident.builder()
                     .incidentKey("INC-" + UUID.randomUUID())
-                    .title("Telemetry incident: " + serviceName)
+                    .title(serviceName)
                     .description(telemetry.getMessage())
                     .severity(mapSeverity(telemetry.getSeverity()))
                     .status(IncidentStatus.DETECTED)
@@ -164,6 +167,7 @@ public class IncidentService {
                     .build();
 
             incident = incidentRepository.save(incident);
+            newIncidentCreated = true;
         }
 
         // Update incident severity if the new event is more severe
@@ -215,6 +219,41 @@ public class IncidentService {
             incidentEventRepository.save(incidentEvent);
         }
 
+        // 7. Trigger AI analysis only for a newly created incident
+        if (newIncidentCreated) {
+
+            try {
+                String errorMessage = telemetry.getMessage();
+
+                if (serviceName != null && !serviceName.isBlank()
+                        && errorMessage != null && !errorMessage.isBlank()) {
+
+                    AnalysisRequest analysisRequest = new AnalysisRequest(
+                            serviceName,
+                            errorMessage,
+                            null, // Stack trace: available hone par pass karenge
+                            telemetry.getSeverity() == null
+                                    ? "MEDIUM"
+                                    : telemetry.getSeverity().name(),
+                            traceId);
+
+                    aiAnalysisClient.analyzeIncident(analysisRequest);
+
+                } else {
+                    System.err.println(
+                            "AI analysis skipped: serviceName or errorMessage is missing");
+                }
+
+            } catch (Exception e) {
+                // AI failure se incident processing fail nahi honi chahiye
+                System.err.println(
+                        "AI analysis failed for incident ID: "
+                                + incident.getId()
+                                + ". Reason: "
+                                + e.getMessage());
+            }
+        }
+
         return incident;
     }
 
@@ -247,28 +286,28 @@ public class IncidentService {
     }
 
     private void updateAffectedServices(
-        Incident incident,
-        String newServiceName) {
+            Incident incident,
+            String newServiceName) {
 
-    if (newServiceName == null || newServiceName.isBlank()) {
-        return;
+        if (newServiceName == null || newServiceName.isBlank()) {
+            return;
+        }
+
+        Set<String> services = new LinkedHashSet<>();
+
+        // Existing affected services preserve karo
+        if (incident.getAffectedServices() != null
+                && !incident.getAffectedServices().isBlank()) {
+
+            Arrays.stream(incident.getAffectedServices().split(","))
+                    .map(String::trim)
+                    .filter(name -> !name.isBlank())
+                    .forEach(services::add);
+        }
+
+        // New service add karo; duplicate automatically ignore hoga
+        services.add(newServiceName.trim());
+
+        incident.setAffectedServices(String.join(", ", services));
     }
-
-    Set<String> services = new LinkedHashSet<>();
-
-    // Existing affected services preserve karo
-    if (incident.getAffectedServices() != null
-            && !incident.getAffectedServices().isBlank()) {
-
-        Arrays.stream(incident.getAffectedServices().split(","))
-                .map(String::trim)
-                .filter(name -> !name.isBlank())
-                .forEach(services::add);
-    }
-
-    // New service add karo; duplicate automatically ignore hoga
-    services.add(newServiceName.trim());
-
-    incident.setAffectedServices(String.join(", ", services));
-}
 }
