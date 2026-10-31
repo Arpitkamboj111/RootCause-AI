@@ -14,11 +14,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.rootcauseai.ai_analysis_service.dto.AnalysisRequest;
+
 import com.rootcauseai.ai_analysis_service.dto.AnalysisResponse;
 import com.rootcauseai.ai_analysis_service.dto.SimilarIncidentResponse;
 import com.rootcauseai.ai_analysis_service.entity.IncidentAnalysis;
 import com.rootcauseai.ai_analysis_service.service.AiAnalysisService;
+import com.rootcauseai.rootcause_common.dto.AnalysisRequest;
 import com.rootcauseai.rootcause_common.response.ApiResponse;
 import com.rootcauseai.ai_analysis_service.service.IncidentVectorService;
 
