@@ -69,7 +69,7 @@ public class IncidentController {
                                 incidentService.getIncidentEvents(id));
         }
 
-        @GetMapping("process-event/eventId")
+        @PostMapping("process-event/eventId")
         public ResponseEntity<Incident> processTelemetryEvent(
                         @RequestParam Long eventId) {
 
