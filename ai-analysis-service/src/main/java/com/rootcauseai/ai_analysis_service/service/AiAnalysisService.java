@@ -12,11 +12,12 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.rootcauseai.ai_analysis_service.dto.AnalysisRequest;
+
 import com.rootcauseai.ai_analysis_service.dto.AnalysisResponse;
 import com.rootcauseai.ai_analysis_service.entity.IncidentAnalysis;
 import com.rootcauseai.ai_analysis_service.exception.AiAnalysisException;
 import com.rootcauseai.ai_analysis_service.repository.AnalysisRepository;
+import com.rootcauseai.rootcause_common.dto.AnalysisRequest;
 import com.rootcauseai.rootcause_common.exception.ResourceNotFoundException;
 
 import lombok.RequiredArgsConstructor;
