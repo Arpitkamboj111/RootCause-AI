@@ -10,7 +10,7 @@ import com.rootcauseai.rootcause_common.dto.TelemetryResponse;
 import com.rootcauseai.rootcause_common.response.ApiResponse;
 
 @FeignClient(
-        name = "telemetry-service",url = "http://localhost:8091", configuration = FeignConfig.class
+        name = "telemetry-service",url = "${TELEMETRY_SERVICE_URL:http://localhost:8091}", configuration = FeignConfig.class
 )
 public interface TelemetryClient {
 
