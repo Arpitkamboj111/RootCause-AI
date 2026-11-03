@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(
     name = "incident-correlation-service",
-    url = "http://localhost:8092",configuration = FeignConfig.class
+    url = "${INCIDENT_SERVICE_URL:http://localhost:8092}",configuration = FeignConfig.class
 )
 public interface IncidentCorrelationClient {
 

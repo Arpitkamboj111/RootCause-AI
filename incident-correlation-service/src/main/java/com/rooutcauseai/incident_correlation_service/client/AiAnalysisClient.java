@@ -11,7 +11,7 @@ import com.rootcauseai.rootcause_common.dto.AnalysisRequest;
 
 @FeignClient(
     name = "ai-analysis-service",
-    url = "http://localhost:8093",
+    url = "${AI_ANALYSIS_SERVICE_URL:http://localhost:8093}",
     configuration = FeignConfig.class
 )
 public interface AiAnalysisClient {
