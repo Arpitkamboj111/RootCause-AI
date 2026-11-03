@@ -1,0 +1,85 @@
+# Common Java timezone configuration
+x-java-timezone: &java-timezone
+  TZ: Asia/Kolkata
+  JAVA_TOOL_OPTIONS: "-Duser.timezone=Asia/Kolkata"
+
+services:
+
+  # 1. Telemetry Service
+  telemetry-service:
+    build:
+      context: .
+      dockerfile: telemetry-service/Dockerfile
+    container_name: rootcause-telemetry-service
+    ports:
+      - "8091:8091"
+    environment:
+      <<: *java-timezone
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/telemetryservice
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+    restart: unless-stopped
+    networks:
+      - rootcause-network
+
+  # 2. Incident Correlation Service
+  incident-correlation-service:
+    build:
+      context: .
+      dockerfile: incident-correlation-service/Dockerfile
+    container_name: rootcause-incident-correlation
+    ports:
+      - "8092:8092"
+    environment:
+      <<: *java-timezone
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/rootcause_correlation_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+    restart: unless-stopped
+    networks:
+      - rootcause-network
+
+  # 3. AI Analysis Service
+  ai-analysis-service:
+    build:
+      context: .
+      dockerfile: ai-analysis-service/Dockerfile
+    container_name: rootcause-ai-analysis
+    ports:
+      - "8093:8093"
+    environment:
+      <<: *java-timezone
+      SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/ai_analysis_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    restart: unless-stopped
+    networks:
+      - rootcause-network
+
+# 4. API Gateway
+  apigateway:
+    build:
+      context: .
+      dockerfile: apigateway/Dockerfile
+    container_name: rootcause-apigateway
+    ports:
+      - "8090:8080"
+    environment:
+      <<: *java-timezone
+      TELEMETRY_SERVICE_URL: http://telemetry-service:8091
+      INCIDENT_SERVICE_URL: http://incident-correlation-service:8092
+      AI_ANALYSIS_SERVICE_URL: http://ai-analysis-service:8093
+    depends_on:
+      - telemetry-service
+      - incident-correlation-service
+      - ai-analysis-service
+    restart: unless-stopped
+    networks:
+      - rootcause-network
+
+# Docker Network
+
+networks:
+  rootcause-network:
+    driver: bridge
