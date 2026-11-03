@@ -18,6 +18,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/telemetryservice
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
+      INCIDENT_SERVICE_URL: http://incident-correlation-service:8092
     restart: unless-stopped
     networks:
       - rootcause-network
@@ -35,6 +36,8 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://host.docker.internal:5432/rootcause_correlation_db
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
+      TELEMETRY_SERVICE_URL: http://telemetry-service:8091
+      AI_ANALYSIS_SERVICE_URL: http://ai-analysis-service:8093
     restart: unless-stopped
     networks:
       - rootcause-network
