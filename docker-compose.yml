@@ -67,7 +67,7 @@ services:
       dockerfile: apigateway/Dockerfile
     container_name: rootcause-apigateway
     ports:
-      - "8080:8080"
+      - "8010:8080"
     environment:
       <<: *java-timezone
       TELEMETRY_SERVICE_URL: http://telemetry-service:8091
