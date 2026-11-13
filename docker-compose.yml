@@ -19,6 +19,7 @@ services:
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
       INCIDENT_SERVICE_URL: http://incident-correlation-service:8092
+      OTLP_API_KEY: ${OTLP_API_KEY}
     restart: unless-stopped
     networks:
       - rootcause-network
