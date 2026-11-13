@@ -12,6 +12,7 @@ public class RouteValidator {
 
     private static final List<String> OPEN_API_ENDPOINTS = List.of(
             "/actuator/health",
+            "/api/v1/telemetry/health",
             "/api/v1/auth/login",
             "/api/v1/auth/register"
     );
