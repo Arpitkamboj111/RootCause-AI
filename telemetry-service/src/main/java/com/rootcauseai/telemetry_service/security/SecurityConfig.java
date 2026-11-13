@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfig {
 
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final OtlpApiKeyFilter otlpApiKeyFilter;
 
         @Bean
         public SecurityFilterChain securityFilterChain(
@@ -32,12 +33,16 @@ public class SecurityConfig {
                                                 .requestMatchers(
                                                                 "/api/v1/auth/login",
                                                                 "/api/v1/auth/register",
-                                                                "/api/v1/telemetry/health")
+                                                                "/api/v1/telemetry/health",
+                                                                 "/v1/traces")
                                                 .permitAll()
                                                 .anyRequest().authenticated())
                                 .addFilterBefore(
+                                                otlpApiKeyFilter,
+                                                UsernamePasswordAuthenticationFilter.class)
+                                .addFilterAfter(
                                                 jwtAuthenticationFilter,
-                                                UsernamePasswordAuthenticationFilter.class);
+                                                OtlpApiKeyFilter.class);
 
                 return http.build();
         }
